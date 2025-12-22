@@ -19,7 +19,7 @@ uv.lock           # Locked dependencies
 
 1. **Create your repository** - Click "Use this template" to create your own repository from this template
 
-2. **Implement your agent** - Add your agent logic to the `run` method in [`src/agent.py`](src/agent.py)
+2. **Implement your agent** - Add your agent logic to [`src/agent.py`](src/agent.py)
 
 3. **Configure your agent card** - Fill in your agent's metadata (name, skills, description) in [`src/server.py`](src/server.py)
 
@@ -43,9 +43,23 @@ docker build -t my-agent .
 docker run -p 9009:9009 my-agent
 ```
 
+## Testing
+
+Run A2A conformance tests against your agent.
+
+```bash
+# Install test dependencies
+uv sync --extra test
+
+# Start your agent (uv or docker; see above)
+
+# Run tests against your running agent URL
+uv run pytest --agent-url http://localhost:9009
+```
+
 ## Publishing
 
-The repository includes a GitHub Actions workflow that automatically builds and publishes a Docker image of your agent to GitHub Container Registry:
+The repository includes a GitHub Actions workflow that automatically builds, tests, and publishes a Docker image of your agent to GitHub Container Registry:
 
 - **Push to `main`** → publishes `latest` tag:
 ```
