@@ -1,0 +1,24 @@
+services:
+  green:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "9009:9009"
+    env_file:
+      - .env
+    environment:
+      - TAU2_DATA_DIR=/data
+    volumes:
+      - ./tau2-bench/data:/data:ro
+    command: ["--host", "0.0.0.0", "--port", "9009", "--card-url", "http://localhost:9009/"]
+
+  purple:
+    build:
+      context: https://github.com/RDI-Foundation/agentbeats-tutorial.git
+      dockerfile: scenarios/tau2/Dockerfile.tau2-agent
+    ports:
+      - "9019:9019"
+    env_file:
+      - .env
+    command: ["--host", "0.0.0.0", "--port", "9019", "--card-url", "http://purple:9019/"]

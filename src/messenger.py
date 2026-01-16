@@ -1,3 +1,4 @@
+import asyncio
 import json
 from uuid import uuid4
 
@@ -18,6 +19,7 @@ from a2a.types import (
 
 
 DEFAULT_TIMEOUT = 300
+DEFAULT_RETRIES = 2
 
 
 def create_message(
@@ -102,6 +104,7 @@ class Messenger:
         url: str,
         new_conversation: bool = False,
         timeout: int = DEFAULT_TIMEOUT,
+        retries: int = DEFAULT_RETRIES,
     ):
         """
         Communicate with another agent by sending a message and receiving their response.
@@ -115,16 +118,28 @@ class Messenger:
         Returns:
             str: The agent's response message
         """
-        outputs = await send_message(
-            message=message,
-            base_url=url,
-            context_id=None if new_conversation else self._context_ids.get(url, None),
-            timeout=timeout,
-        )
-        if outputs.get("status", "completed") != "completed":
-            raise RuntimeError(f"{url} responded with: {outputs}")
-        self._context_ids[url] = outputs.get("context_id", None)
-        return outputs["response"]
+        last_error: Exception | None = None
+        for attempt in range(retries + 1):
+            try:
+                outputs = await send_message(
+                    message=message,
+                    base_url=url,
+                    context_id=None if new_conversation else self._context_ids.get(url, None),
+                    timeout=timeout,
+                )
+                if outputs.get("status", "completed") != "completed":
+                    raise RuntimeError(f"{url} responded with: {outputs}")
+                self._context_ids[url] = outputs.get("context_id", None)
+                return outputs["response"]
+            except Exception as exc:
+                last_error = exc
+                if attempt >= retries:
+                    break
+                await asyncio.sleep(min(0.5 * (attempt + 1), 2.0))
+
+        if last_error:
+            raise last_error
+        raise RuntimeError(f"{url} failed without a response")
 
     def reset(self):
         self._context_ids = {}

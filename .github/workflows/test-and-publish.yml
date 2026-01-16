@@ -1,23 +1,19 @@
-name: Test and Publish Agent
+name: Test Agent
 
 on:
   pull_request:
   push:
     branches:
       - main
-    tags:
-      - 'v*'  # Trigger on version tags like v1.0.0, v1.1.0
 
 jobs:
-  test-and-publish:
+  test:
     runs-on: ubuntu-latest
 
     # These permissions are required for the workflow to:
     # - Read repository contents (checkout code)
-    # - Write to GitHub Container Registry (push Docker images)
     permissions:
       contents: read
-      packages: write
 
     steps:
       - name: Checkout repository
@@ -29,10 +25,7 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=ci
 
       - name: Build Docker image
         uses: docker/build-push-action@v5
@@ -56,7 +49,7 @@ jobs:
         uses: astral-sh/setup-uv@v4
 
       - name: Install test dependencies
-        run: uv sync --extra test
+        run: uv sync --frozen --extra test
 
       - name: Run tests
         run: uv run pytest -v --agent-url http://localhost:9009
@@ -67,22 +60,3 @@ jobs:
           echo "=== Agent Container Logs ==="
           docker logs agent-container || true
           docker stop agent-container || true
-
-      - name: Log in to GitHub Container Registry
-        if: success() && github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Push Docker image
-        if: success() && github.event_name != 'pull_request'
-        run: docker push --all-tags ghcr.io/${GITHUB_REPOSITORY,,}
-
-      - name: Output image digest
-        if: success() && github.event_name != 'pull_request'
-        run: |
-          echo "## Docker Image Published :rocket:" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Tags:** ${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY

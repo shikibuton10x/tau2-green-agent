@@ -1,10 +1,12 @@
 .DS_Store
 .env
-.python-version
 
 # Python-generated files
 __pycache__/
 *.py[oc]
+.pycache/
+.pyc
+.pytest_cache/
 build/
 dist/
 wheels/
@@ -12,3 +14,10 @@ wheels/
 
 # Virtual environments
 .venv
+.aicodeprep-gui
+.vscode/
+.idea/
+
+# Local clones / data used for E2E
+tau2-bench/
+agentbeats-tutorial/

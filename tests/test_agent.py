@@ -1,10 +1,11 @@
 from typing import Any
+import json
 import pytest
 import httpx
 from uuid import uuid4
 
 from a2a.client import A2ACardResolver, ClientConfig, ClientFactory
-from a2a.types import Message, Part, Role, TextPart
+from a2a.types import Message, Part, Role, TextPart, SendMessageRequest, MessageSendParams
 
 
 # A2A validation helpers - adapted from https://github.com/a2aproject/a2a-inspector/blob/main/backend/validators.py
@@ -197,3 +198,55 @@ async def test_message(agent, streaming):
     assert not all_errors, f"Message validation failed:\n" + "\n".join(all_errors)
 
 # Add your custom tests here
+
+
+def _post_eval_request(agent_url: str, request_payload: dict[str, Any]) -> httpx.Response:
+    text = json.dumps(request_payload)
+    msg = Message(
+        kind="message",
+        role=Role.user,
+        parts=[Part(TextPart(text=text))],
+        message_id=uuid4().hex,
+        context_id=uuid4().hex,
+    )
+    rpc = SendMessageRequest(
+        id=uuid4().hex,
+        jsonrpc="2.0",
+        method="message/send",
+        params=MessageSendParams(message=msg),
+    )
+    return httpx.post(
+        f"{agent_url}/",
+        json=rpc.model_dump(mode="json", by_alias=True),
+        timeout=10,
+    )
+
+
+def test_rejects_invalid_domain_http(agent):
+    request_payload = {
+        "participants": {"agent": "http://localhost:9019"},
+        "config": {"domain": "not_a_domain", "num_tasks": 1},
+    }
+
+    r = _post_eval_request(agent, request_payload)
+
+    assert r.status_code == 200
+    body = r.json()
+    blob = json.dumps(body)
+    assert "Traceback" not in blob
+    assert "Invalid config" in blob or "Unsupported domain" in blob
+
+
+def test_rejects_missing_participants_http(agent):
+    request_payload = {
+        "participants": {},
+        "config": {"domain": "mock", "num_tasks": 1},
+    }
+
+    r = _post_eval_request(agent, request_payload)
+
+    assert r.status_code == 200
+    body = r.json()
+    blob = json.dumps(body)
+    assert "Traceback" not in blob
+    assert "Missing roles" in blob

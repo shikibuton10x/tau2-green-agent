@@ -24,16 +24,18 @@ def main():
     # See: https://a2a-protocol.org/latest/tutorials/python/3-agent-skills-and-card/
     
     skill = AgentSkill(
-        id="",
-        name="",
-        description="",
-        tags=[],
-        examples=[]
+        id="tau2_evaluation",
+        name="Tau2 Benchmark Evaluation",
+        description="Evaluates agents on tau-bench tasks (mock, airline, retail, telecom domains)",
+        tags=["benchmark", "evaluation", "tau2"],
+        examples=[
+            '{"participants": {"agent": "http://localhost:9019"}, "config": {"domain": "mock", "num_tasks": 1, "seed": 0, "timeout_seconds": 300, "max_steps": 50, "retries": 2}}'
+        ]
     )
 
     agent_card = AgentCard(
-        name="",
-        description="",
+        name="Tau2GreenAgent",
+        description="Tau2 benchmark evaluator - tests agents on customer service tasks",
         url=args.card_url or f"http://{args.host}:{args.port}/",
         version='1.0.0',
         default_input_modes=['text'],

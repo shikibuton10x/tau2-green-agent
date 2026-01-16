@@ -1,6 +1,6 @@
 FROM ghcr.io/astral-sh/uv:python3.13-bookworm
 
-RUN adduser agent
+RUN adduser --disabled-password --gecos "" agent
 USER agent
 WORKDIR /home/agent
 
@@ -9,7 +9,7 @@ COPY src src
 
 RUN \
     --mount=type=cache,target=/home/agent/.cache/uv,uid=1000 \
-    uv sync --locked
+    uv sync --frozen
 
 ENTRYPOINT ["uv", "run", "src/server.py"]
 CMD ["--host", "0.0.0.0"]
